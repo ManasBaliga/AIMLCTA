@@ -1,0 +1,136 @@
+import tkinter as tk
+import random
+
+PLAYER_X = "X"
+PLAYER_O = "O"
+EMPTY = " "
+
+class TicTacToeGUI:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Tic-Tac-Toe")
+        
+        self.board = [[EMPTY for _ in range(3)] for _ in range(3)]
+        self.game_over = False
+        self.current_player = PLAYER_X  
+        
+        self.buttons = [[None for _ in range(3)] for _ in range(3)]
+        for i in range(3):
+            for j in range(3):
+                button = tk.Button(self.master, text="", width=10, height=3,
+                                   font=("Arial", 24), command=lambda i=i, j=j: self.player_move(i, j))
+                button.grid(row=i, column=j)
+                self.buttons[i][j] = button
+
+        self.status_label = tk.Label(self.master, text="Your Turn (X)", font=("Arial", 16))
+        self.status_label.grid(row=3, column=0, columnspan=3)
+
+    def player_move(self, i, j):
+        if self.game_over or self.board[i][j] != EMPTY:
+            return
+
+        self.board[i][j] = PLAYER_X
+        self.buttons[i][j].config(text=PLAYER_X)
+        self.check_game_status()
+        
+        if not self.game_over:
+            self.ai_move()
+
+    def ai_move(self):
+        if self.game_over:
+            return
+
+        self.status_label.config(text="Now it's AI's Turn (O)")
+
+        i, j = self.get_best_move()
+        self.board[i][j] = PLAYER_O
+        self.buttons[i][j].config(text=PLAYER_O)
+        self.check_game_status()
+
+    def check_game_status(self):
+        if self.check_win(PLAYER_X):
+            self.status_label.config(text="You Bested AI!")
+            self.game_over = True
+        elif self.check_win(PLAYER_O):
+            self.status_label.config(text="AI bested you!")
+            self.game_over = True
+        elif self.check_tie():
+            self.status_label.config(text="It's a Tie!")
+            self.game_over = True
+        else:
+            if self.current_player == PLAYER_X:
+                self.current_player = PLAYER_O
+            else:
+                self.current_player = PLAYER_X
+
+    def check_win(self, player):
+        for i in range(3):
+            if all([self.board[i][j] == player for j in range(3)]) or all([self.board[j][i] == player for j in range(3)]):
+                return True
+        if self.board[0][0] == player and self.board[1][1] == player and self.board[2][2] == player:
+            return True
+        if self.board[0][2] == player and self.board[1][1] == player and self.board[2][0] == player:
+            return True
+        return False
+
+    def check_tie(self):
+        return all(self.board[i][j] != EMPTY for i in range(3) for j in range(3))
+
+    def minimax(self, board, depth, is_maximizing, a, b):
+        if self.check_win(PLAYER_X):
+            return -10 + depth
+        if self.check_win(PLAYER_O):
+            return 10 - depth
+        if self.check_tie():
+            return 0
+
+        if is_maximizing:
+            max_eval = float('-inf')
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] == EMPTY:
+                        board[i][j] = PLAYER_O
+                        eval = self.minimax(board, depth + 1, False, a, b)
+                        board[i][j] = EMPTY
+                        max_eval = max(max_eval, eval)
+                        a = max(a, eval)
+                        if b <= a:
+                            break
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] == EMPTY:
+                        board[i][j] = PLAYER_X
+                        eval = self.minimax(board, depth + 1, True, a, b)
+                        board[i][j] = EMPTY
+                        min_eval = min(min_eval, eval)
+                        b = min(b, eval)
+                        if b <= a:
+                            break
+            return min_eval
+
+    def get_best_move(self):
+        best_move = None
+        best_value = float('-inf')
+
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == EMPTY:
+                    self.board[i][j] = PLAYER_O
+                    move_value = self.minimax(self.board, 0, False, float('-inf'), float('inf'))
+                    self.board[i][j] = EMPTY
+                    if move_value > best_value:
+                        best_value = move_value
+                        best_move = (i, j)
+
+        return best_move
+
+def main():
+    root = tk.Tk()
+    game = TicTacToeGUI(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
